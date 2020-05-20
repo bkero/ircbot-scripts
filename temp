@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+
+set -e
+set -o pipefail
+
+source secrets.sh
+POSTDATA=$(cat <<EOF
+{"state": "heat",
+  "attributes": {
+    "temperature": $1
+  }
+}
+EOF
+)
+
+if [ -z "$1" ]; then
+    ENTITY_ATTRS=$(curl -s -X GET \
+        -H "Authorization: Bearer $TOKEN" \
+        -H "Content-Type: application/json" \
+        ${ENDPOINT}/api/states/climate.linear_nortek_security_control_llc_gc_tbz48_battery_powered_z_wave_thermostat_mode)
+    WEATHER_ATTRS=$(curl -s -X GET \
+        -H "Authorization: Bearer $TOKEN" \
+        -H "Content-Type: application/json" \
+        ${ENDPOINT}/api/states/weather.home)
+    TEMP_TARGET=$(echo $ENTITY_ATTRS | jq .attributes.temperature)
+    CURRENT_TEMPERATURE=$(echo $ENTITY_ATTRS | jq .attributes.current_temperature)
+    PORTLAND_TEMP=$(echo $WEATHER_ATTRS | jq .attributes.temperature)
+    PORTLAND_HUMIDITY=$(echo $WEATHER_ATTRS | jq .attributes.humidity)
+    echo "Current indoor temperature is ${CURRENT_TEMPERATURE}°C. Target temperature is ${TEMP_TARGET}°C. Portland is ${PORTLAND_TEMP}°C with ${PORTLAND_HUMIDITY}% humidity"
+else
+    TEMPERATURE=$(curl -s -X POST \
+        -H "Authorization: Bearer $TOKEN" \
+        -H "Content-Type: application/json" \
+        -d "$POSTDATA" \
+        ${ENDPOINT}/api/states/climate.linear_nortek_security_control_llc_gc_tbz48_battery_powered_z_wave_thermostat_mode \
+        | jq .attributes.temperature)
+    echo "The thermostat is now set to ${TEMPERATURE}°C"
+fi

@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+
+set -e
+set -o pipefail
+
+source secrets.sh
+ENTITY_ID="media_player.tv"
+
+function get_vol() {
+  RAW_VOL=$(curl -s -X GET -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" ${ENDPOINT}/api/states/${ENTITY_ID} | jq .attributes.volume_level)
+  VOL=$(echo "$RAW_VOL * 100" | bc)
+  echo $VOL
+}
+
+STATE=$(curl -s -X GET -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" ${ENDPOINT}/api/states/${ENTITY_ID} | jq .attributes.is_volume_muted)
+if [ "$1" = "status" ]; then
+  # print mute status
+  if [ "$STATE" != "false" ]; then
+    echo "The TV is muted"
+  else
+    echo "The TV is unmuted"
+  fi
+  exit 0
+fi
+
+if [ "${STATE}" = "false" ]; then
+  get_vol > /tmp/current_vol
+fi
+
+if [ "${STATE}" = "true" ]; then
+  bin/vol $(cat /tmp/current_vol) > /dev/null
+fi
+
+BUTTON_JSON=$(cat <<EOF
+{
+  "entity_id": "$ENTITY_ID",
+  "button": "MUTE"
+}
+EOF
+)
+
+NEW_STATE=$(curl -s -X POST \
+    -H "Authorization: Bearer $TOKEN" \
+    -H "Content-Type: application/json" \
+    -d "$BUTTON_JSON" \
+    ${ENDPOINT}/api/services/webostv/button)
+if [ "$STATE" != "true" ]; then
+    echo "The TV is now muted"
+else
+    echo "The TV is now unmuted"
+fi

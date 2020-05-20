@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+BASECMD="$HOME/LGWebOSRemote/venv/bin/lgtv TV"
+
+if [ -z "$1" ]; then
+    exit 0
+else
+    $BASECMD openYoutubeURL "$1" 2>/dev/null
+fi

@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+BASECMD="$HOME/LGWebOSRemote/venv/bin/lgtv TV"
+
+if [ "$1" = "on" ]; then
+    $BASECMD on 2>/dev/null
+else
+    $BASECMD off 2>/dev/null
+fi

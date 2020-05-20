@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+
+set -e
+set -o pipefail
+
+source secrets.sh
+ENTITY_ID="lock.assa_abloy_yale_push_button_deadbolt_yrd216_locked"
+POSTDATA='{"state": "unlocked"}'
+OLDSTATE=$(curl -s -X GET \
+    -H "Authorization: Bearer $TOKEN" \
+    -H "Content-Type: application/json" \
+    ${ENDPOINT}/api/states/${ENTITY_ID} \
+    | jq .state|tr -d \")
+
+if [ "$OLDSTATE" = "unlocked" ]; then
+  echo "Front door is already unlocked."
+  exit 0
+fi
+
+STATE=$(curl -s -X POST \
+    -H "Authorization: Bearer $TOKEN" \
+    -H "Content-Type: application/json" \
+    -d "$POSTDATA" \
+    ${ENDPOINT}/api/states/${ENTITY_ID} \
+    | jq .state | tr -d \")
+echo "The front door is now $STATE"

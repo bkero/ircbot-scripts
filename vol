@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+
+set -e
+set -o pipefail
+
+source secrets.sh
+ENTITY_ID="media_player.tv"
+if [ -z "$1" ]; then
+  # print volume
+  CURRENT_VOL=$(curl -s -X GET -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" ${ENDPOINT}/api/states/${ENTITY_ID} | jq .attributes.volume_level)
+  CORRECTED_VOL=$(echo "$CURRENT_VOL * 100" | bc)
+  echo "The TV volume is currently $CORRECTED_VOL%"
+  exit 0
+else
+  VOL=$(echo "scale=2; $1 / 100" | bc)
+fi
+
+STATE=$(curl -s -X GET \
+    -H "Authorization: Bearer $TOKEN" \
+    -H "Content-Type: application/json" \
+    ${ENDPOINT}/api/states/${ENTITY_ID})
+
+NEW_STATE=$(echo $STATE | jq .attributes.volume_level=$VOL)
+
+NEW_VOL=$(curl -s -X POST \
+    -H "Authorization: Bearer $TOKEN" \
+    -H "Content-Type: application/json" \
+    -d "$NEW_STATE" \
+    ${ENDPOINT}/api/states/${ENTITY_ID} \
+    | jq .attributes.volume_level)
+echo "The volume is now $(echo scale=0\; $NEW_VOL \* 100 | bc)%"
