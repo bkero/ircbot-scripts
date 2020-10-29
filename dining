@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -e
+set -ex
 set -o pipefail
 
 source secrets.sh
@@ -38,7 +38,11 @@ else
     STATE=$(curl -s -X GET \
         -H "Authorization: Bearer $TOKEN" \
         -H "Content-Type: application/json" \
-        ${ENDPOINT}/api/states/${ENTITY_ID} )
-        #| jq .state|tr -d \")
-    echo $STATE
+        ${ENDPOINT}/api/states/${ENTITY_ID})
+    if [ "$(echo $STATE | jq -r .state)" = "on" ]; then
+        BRIGHTNESS=$(expr $(echo $STATE | jq -r .attributes.brightness) \* 100 / 255)
+    else
+        BRIGHTNESS=0
+    fi
+    echo "Dining lights at ${BRIGHTNESS}%"
 fi
