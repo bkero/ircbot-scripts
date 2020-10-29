@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+set -e
+set -o pipefail
+
+source secrets.sh
+ENTITY_ID="sensor.particulate_matter_2_5um_concentration"
+
+STATE=$(curl -s -X GET \
+    -H "Authorization: Bearer $TOKEN" \
+    -H "Content-Type: application/json" \
+    ${ENDPOINT}/api/states/${ENTITY_ID} \
+    | jq .state|tr -d \")
+AQI=$(/home/bkero/.venv/bin/aqi aqi.algos.epa pm25:${STATE})
+echo AQI: $AQI, PM2.5 concentration: $STATE ug/m^3
