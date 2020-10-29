@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+
+set -e
+set -o pipefail
+
+source secrets.sh
+ENTITY_ID="light.leviton_dz6hd_1bz_decora_600w_smart_dimmer_level_2"
+
+if [ -n "$1" ]; then
+    if [ "$1" = "on" -o "$1" = "100" ]; then
+        echo "Dining lights on (100%)"
+        SERVICE="turn_on"
+        POSTDATA=$(cat <<EOH
+{"entity_id": "$ENTITY_ID", "brightness_pct": 100}
+EOH
+)
+    elif [ "$1" = "off" -o "$1" = "0" ]; then
+        echo "Dining lights off"
+        SERVICE="turn_off"
+        POSTDATA=$(cat <<EOH
+{"entity_id": "$ENTITY_ID"}
+EOH
+)
+    else
+        echo "Dining lights set to be ${1}%"
+        SERVICE="turn_on"
+        POSTDATA=$(cat <<EOH
+{"entity_id": "$ENTITY_ID", "brightness_pct": $1}
+EOH
+)
+    fi
+    curl -s -X POST \
+    -d "$POSTDATA" \
+    -H "Authorization: Bearer $TOKEN" \
+    -H "Content-Type: application/json" \
+    ${ENDPOINT}/api/services/light/${SERVICE} > /dev/null 2>&1
+else
+    STATE=$(curl -s -X GET \
+        -H "Authorization: Bearer $TOKEN" \
+        -H "Content-Type: application/json" \
+        ${ENDPOINT}/api/states/${ENTITY_ID} )
+        #| jq .state|tr -d \")
+    echo $STATE
+fi
