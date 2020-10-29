@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+
+set -e
+set -o pipefail
+
+source secrets.sh
+ENTITY_ID="cover.linear_nortek_security_control_llc_gd00z_4_garage_door_opener_remote_controller_barrier_state_label"
+
+if [ -n "$1" ]; then
+    if [ "$1" = "open" -o "$1" = "up" ]; then
+        SERVICE="open_cover"
+    elif [ "$1" = "close" -o "$1" == "down" ]; then
+        SERVICE="close_cover"
+    else
+        echo "Error, unknown action, specify (open|close)"
+        exit 1
+    fi
+
+    curl -s -X POST \
+    -d '{"entity_id": "cover.linear_nortek_security_control_llc_gd00z_4_garage_door_opener_remote_controller_barrier_state_label"}' \
+    -H "Authorization: Bearer $TOKEN" \
+    -H "Content-Type: application/json" \
+    ${ENDPOINT}/api/services/cover/${SERVICE} > /dev/null 2>&1
+    echo "Garage door requested to be $1"
+    exit 0
+fi
+
+STATE=$(curl -s -X GET \
+    -H "Authorization: Bearer $TOKEN" \
+    -H "Content-Type: application/json" \
+    ${ENDPOINT}/api/states/${ENTITY_ID} \
+    | jq .state|tr -d \")
+if [ "$STATE" = "open" ]; then
+    echo "The garage door is up"
+    exit 0
+fi
+if [ "$STATE" = "closed" ]; then
+    echo "The garage door is down"
+    exit 0
+fi
+
+echo "The garage door is in an unknown state: (${STATE})"
